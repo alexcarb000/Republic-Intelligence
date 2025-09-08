@@ -2032,10 +2032,25 @@
             debugBtn.textContent = 'Debug Data';
             debugBtn.className = 'btn';
             debugBtn.onclick = () => {
-                console.log('🔍 DEBUG: Current division data:', divisionData);
-                console.log('🔍 DEBUG: Current user:', currentUser);
-                console.log('🔍 DEBUG: Active division:', activeDivision);
-                console.log('🔍 DEBUG: API Config:', API_CONFIG);
+                console.log('=== DEBUG INFO ===');
+                console.log('Current division data:', divisionData);
+                console.log('Current user:', currentUser);
+                console.log('Active division:', activeDivision);
+                console.log('API Config:', API_CONFIG);
+                
+                // Show actual data structure for AG-001
+                if (divisionData['AG-001'] && divisionData['AG-001'].length > 0) {
+                    console.log('=== AG-001 SAMPLE DATA ===');
+                    console.log('First report from AG-001:', divisionData['AG-001'][0]);
+                    console.log('All keys in first report:', Object.keys(divisionData['AG-001'][0]));
+                    console.log('Sample values:');
+                    Object.entries(divisionData['AG-001'][0]).forEach(([key, value]) => {
+                        console.log(`  ${key}: "${value}"`);
+                    });
+                } else {
+                    console.log('No AG-001 data found');
+                }
+                
                 showNotification('Debug info logged to console', 'info');
             };
             document.querySelector('.status-panel').appendChild(debugBtn);
