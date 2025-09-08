@@ -91,6 +91,11 @@
             }
         }
 
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-30px) scale(0.95); }
+        }
+
         @keyframes scaleInOrganic {
             from { 
                 opacity: 0; 
@@ -521,6 +526,8 @@
             font-size: 14px;
             color: #a8b2c6;
             font-weight: 500;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .status-indicator {
@@ -1668,7 +1675,6 @@
         </div>
     </div>
 
-    <script src="https://apis.google.com/js/api.js"></script>
     <script>
         // Configuration
         const API_CONFIG = {
@@ -1714,12 +1720,179 @@
         let activeDivision = null;
         let divisionData = {};
 
-        // Initialize application
+        // Simple initialization - NO gapi dependencies
         function initializeApp() {
+            console.log('🚀 Initializing Republic Intelligence Agency app...');
             updateCurrentTime();
             setInterval(updateCurrentTime, 1000);
             setInterval(updateSyncTime, 30000);
             generateDivisionPages();
+            
+            // Load demo data immediately
+            loadDemoData();
+            
+            // Attempt to load real data in background
+            setTimeout(() => {
+                loadRealDataFromSheets();
+            }, 2000);
+        }
+        
+        function loadDemoData() {
+            console.log('📊 Loading demo data...');
+            
+            // Create sample data for each division
+            Object.keys(divisions).forEach(divCode => {
+                divisionData[divCode] = [
+                    {
+                        date: '2024-01-15',
+                        numbercount: '45',
+                        observation: 'Routine patrol completed',
+                        evidencelinkdescription: 'Report filed in database',
+                        risklevel: 'low',
+                        status: 'completed',
+                        notes: 'All objectives met'
+                    },
+                    {
+                        date: '2024-01-14',
+                        numbercount: '23',
+                        observation: 'Suspicious activity detected',
+                        evidencelinkdescription: 'Security footage available',
+                        risklevel: 'medium',
+                        status: 'active',
+                        notes: 'Requires follow-up investigation'
+                    },
+                    {
+                        date: '2024-01-13',
+                        numbercount: '67',
+                        observation: 'Emergency response deployed',
+                        evidencelinkdescription: 'Incident report #2024-013',
+                        risklevel: 'high',
+                        status: 'completed',
+                        notes: 'Situation resolved successfully'
+                    }
+                ];
+            });
+            
+            updateDivisionStats();
+            updateSyncTime();
+        }
+
+        // Direct Google Sheets API access (no gapi required)
+        async function loadRealDataFromSheets() {
+            console.log('🔄 Attempting to load real data from Google Sheets...');
+            console.log('🔧 API Config check:', {
+                spreadsheetId: API_CONFIG.spreadsheetId,
+                hasApiKey: !!API_CONFIG.apiKey,
+                apiKeyLength: API_CONFIG.apiKey ? API_CONFIG.apiKey.length : 0
+            });
+            
+            try {
+                showNotification('Attempting to load real data from Google Sheets...', 'info');
+                
+                // Test with one division first
+                const testDivision = 'AG-001';
+                const testRange = 'AG-001!A:G';
+                const testUrl = `https://sheets.googleapis.com/v4/spreadsheets/${API_CONFIG.spreadsheetId}/values/${encodeURIComponent(testRange)}?key=${API_CONFIG.apiKey}`;
+                
+                console.log('🧪 Testing connection with URL:', testUrl);
+                console.log('📋 Making fetch request...');
+                
+                const testResponse = await fetch(testUrl);
+                console.log('📡 Response received! Status:', testResponse.status, testResponse.statusText);
+                
+                if (!testResponse.ok) {
+                    const errorText = await testResponse.text();
+                    console.error('❌ API Error Response:', errorText);
+                    console.error('❌ Full response details:', {
+                        status: testResponse.status,
+                        statusText: testResponse.statusText,
+                        headers: Object.fromEntries(testResponse.headers.entries())
+                    });
+                    throw new Error(`HTTP ${testResponse.status}: ${errorText}`);
+                }
+                
+                const testData = await testResponse.json();
+                console.log('✅ Test successful! Sample data received:', testData);
+                console.log('📊 Raw values:', testData.values);
+                
+                // If test successful, load all divisions
+                console.log('🚀 Test passed, loading all divisions...');
+                await loadAllDivisionsData();
+                
+            } catch (error) {
+                console.error('❌ Failed to connect to Google Sheets:');
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                console.log('📱 Continuing with demo data');
+                showNotification('Could not connect to Google Sheets - using demo data', 'info');
+            }
+        }
+        
+        async function loadAllDivisionsData() {
+            console.log('📡 Loading data for all divisions...');
+            
+            const sheetRanges = {
+                'AG-001': 'AG-001!A:G',
+                'AG-002': 'AG-002!A:G', 
+                'AG-003': 'AG-003!A:G',
+                'AG-004': 'AG-004!A:G',
+                'AG-005': 'AG-005!A:G',
+                'AG-006': 'AG-006!A:G',
+                'AG-007': 'AG-007!A:G',
+                'AG-008': 'AG-008!A:G',
+                'AG-009': 'AG-009!A:G'
+            };
+
+            let successCount = 0;
+            
+            for (const [division, range] of Object.entries(sheetRanges)) {
+                try {
+                    console.log(`📊 Fetching ${division}...`);
+                    
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${API_CONFIG.spreadsheetId}/values/${encodeURIComponent(range)}?key=${API_CONFIG.apiKey}`;
+                    const response = await fetch(url);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const values = data.values || [];
+                        
+                        if (values.length > 1) {
+                            const headers = values[0];
+                            const reports = values.slice(1).map(row => {
+                                const report = {};
+                                headers.forEach((header, index) => {
+                                    const key = header.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+                                    report[key] = row[index] || '';
+                                });
+                                return report;
+                            });
+                            
+                            divisionData[division] = reports;
+                            console.log(`✅ ${division}: Loaded ${reports.length} real reports`);
+                            successCount++;
+                        }
+                    } else {
+                        console.warn(`⚠️ ${division}: HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error(`❌ ${division}: ${error.message}`);
+                }
+            }
+            
+            if (successCount > 0) {
+                console.log(`🎉 Successfully loaded real data from ${successCount} divisions!`);
+                updateDivisionStats();
+                updateSyncTime();
+                showNotification(`✅ Loaded real data from ${successCount} divisions!`, 'success');
+            }
+        }
+
+        // Direct Google Sheets API access (no gapi required)
+        async function loadDivisionData() {
+            console.log('🔄 Loading division data via direct API...');
+            // Just call the real data loading function
+            await loadRealDataFromSheets();
         }
 
         function generateDivisionPages() {
@@ -1846,8 +2019,26 @@
         function initializeInterface() {
             setupNavigation();
             updateUserInfo();
-            loadDivisionData();
             showDivisionPage(activeDivision);
+            addDebugButton();
+            
+            // Try to load real data when user logs in
+            loadRealDataFromSheets();
+        }
+
+        // Add debugging button (helps troubleshoot issues)
+        function addDebugButton() {
+            const debugBtn = document.createElement('button');
+            debugBtn.textContent = 'Debug Data';
+            debugBtn.className = 'btn';
+            debugBtn.onclick = () => {
+                console.log('🔍 DEBUG: Current division data:', divisionData);
+                console.log('🔍 DEBUG: Current user:', currentUser);
+                console.log('🔍 DEBUG: Active division:', activeDivision);
+                console.log('🔍 DEBUG: API Config:', API_CONFIG);
+                showNotification('Debug info logged to console', 'info');
+            };
+            document.querySelector('.status-panel').appendChild(debugBtn);
         }
 
         function setupNavigation() {
@@ -1909,32 +2100,33 @@
             }, 150);
         }
 
-        // Google Sheets Integration
-        async function loadDivisionData() {
-            try {
-                showNotification('Loading intelligence data...', 'info');
-                
-                // Simulate API call with realistic delay
-                setTimeout(() => {
-                    updateDivisionStats();
-                    showNotification('Data synchronized with Google Sheets', 'success');
-                }, 2500);
-                
-            } catch (error) {
-                console.error('Error loading data:', error);
-                showNotification('Error connecting to Google Sheets', 'error');
-            }
-        }
-
         function updateDivisionStats() {
+            console.log('🔄 Updating division statistics...');
+            
             Object.keys(divisions).forEach(divCode => {
                 const prefix = divCode.toLowerCase();
                 const data = divisionData[divCode] || [];
                 
+                console.log(`📊 ${divCode}: Processing ${data.length} reports`);
+                
                 const total = data.length;
-                const highRisk = data.filter(r => r.riskLevel === 'High').length;
-                const avgPersonnel = total > 0 ? Math.round(data.reduce((sum, r) => sum + parseInt(r.numberCount || 0), 0) / total) : 0;
-                const readiness = total > 0 ? Math.round((data.filter(r => r.status === 'Completed').length / total) * 100) : 0;
+                const highRisk = data.filter(r => {
+                    const risk = (r.risklevel || r.riskLevel || '').toLowerCase();
+                    return risk === 'high' || risk === 'HIGH';
+                }).length;
+                const avgPersonnel = total > 0 ? Math.round(data.reduce((sum, r) => sum + parseInt(r.numbercount || r.numberCount || 0), 0) / total) : 0;
+                const completed = data.filter(r => {
+                    const status = (r.status || '').toLowerCase();
+                    return status === 'completed' || status === 'COMPLETED';
+                }).length;
+                const readiness = total > 0 ? Math.round((completed / total) * 100) : 0;
+                
+                console.log(`📈 ${divCode} Stats:`, {
+                    total,
+                    highRisk,
+                    avgPersonnel,
+                    readiness: readiness + '%'
+                });
                 
                 // Animate number updates
                 animateValue(prefix + '-total', 0, total, 1200);
@@ -1966,10 +2158,16 @@
         }
 
         function updateReportsTable(divisionCode, reports) {
+            console.log(`📋 Updating reports table for ${divisionCode} with ${reports.length} reports`);
+            
             const tbody = document.getElementById(divisionCode.toLowerCase() + '-reports');
-            if (!tbody) return;
+            if (!tbody) {
+                console.warn(`⚠️ Table body not found for ${divisionCode}`);
+                return;
+            }
 
             if (reports.length === 0) {
+                console.log(`ℹ️ No reports to display for ${divisionCode}`);
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" style="text-align: center; padding: 40px; color: #8a92a6;">
@@ -1980,23 +2178,39 @@
                 return;
             }
 
-            tbody.innerHTML = reports.map((report, index) => `
-                <tr style="animation: slideInFlow 0.5s ease-out ${index * 0.1}s both;">
-                    <td>${report.date}</td>
-                    <td>${report.numberCount || 'N/A'}</td>
-                    <td>${report.observation || 'No observation recorded'}</td>
-                    <td>${report.evidenceLink || 'No evidence provided'}</td>
-                    <td class="risk-${report.riskLevel?.toLowerCase() || 'low'}">${(report.riskLevel || 'LOW').toUpperCase()}</td>
-                    <td class="risk-${report.status?.toLowerCase() || 'active'}">${(report.status || 'ACTIVE').toUpperCase()}</td>
-                    <td>${report.notes || 'No additional notes'}</td>
-                </tr>
-            `).join('');
+            // Log sample report structure
+            console.log(`📄 Sample report structure for ${divisionCode}:`, reports[0]);
+
+            tbody.innerHTML = reports.map((report, index) => {
+                // Handle different possible column name variations
+                const date = report.date || report.Date || 'N/A';
+                const numberCount = report.numbercount || report.numberCount || report['Number Count'] || 'N/A';
+                const observation = report.observation || report.Observation || 'No observation recorded';
+                const evidenceLink = report.evidencelinkdescription || report.evidenceLink || report['Evidence Link/Description'] || 'No evidence provided';
+                const riskLevel = (report.risklevel || report.riskLevel || report['Risk Level'] || 'low').toLowerCase();
+                const status = (report.status || report.Status || 'active').toLowerCase();
+                const notes = report.notes || report.Notes || 'No additional notes';
+                
+                return `
+                    <tr style="animation: slideInFlow 0.5s ease-out ${index * 0.1}s both; cursor: pointer;" onclick="viewReport('${divisionCode}', '${date}')">
+                        <td>${date}</td>
+                        <td>${numberCount}</td>
+                        <td>${observation}</td>
+                        <td>${evidenceLink}</td>
+                        <td class="risk-${riskLevel}">${riskLevel.toUpperCase()}</td>
+                        <td class="status-${status}">${status.toUpperCase()}</td>
+                        <td>${notes}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            console.log(`✅ Table updated for ${divisionCode}`);
         }
 
         // Report viewing with enhanced modal
         function viewReport(divisionCode, reportDate) {
             const reports = divisionData[divisionCode] || [];
-            const report = reports.find(r => r.date === reportDate);
+            const report = reports.find(r => (r.date || r.Date) === reportDate);
             
             if (!report) {
                 showNotification('Report not found', 'error');
@@ -2012,37 +2226,37 @@
                 
                 <div class="field-group">
                     <div class="field-label">Date</div>
-                    <div class="field-value">${report.date}</div>
+                    <div class="field-value">${report.date || report.Date || 'N/A'}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Number Count</div>
-                    <div class="field-value">${report.numberCount || 'N/A'}</div>
+                    <div class="field-value">${report.numbercount || report.numberCount || report['Number Count'] || 'N/A'}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Observation</div>
-                    <div class="field-value">${report.observation || 'No observation recorded'}</div>
+                    <div class="field-value">${report.observation || report.Observation || 'No observation recorded'}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Evidence Link/Description</div>
-                    <div class="field-value">${report.evidenceLink || 'No evidence provided'}</div>
+                    <div class="field-value">${report.evidencelinkdescription || report.evidenceLink || report['Evidence Link/Description'] || 'No evidence provided'}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Risk Level</div>
-                    <div class="field-value risk-${report.riskLevel?.toLowerCase() || 'low'}">${(report.riskLevel || 'LOW').toUpperCase()}</div>
+                    <div class="field-value risk-${(report.risklevel || report.riskLevel || report['Risk Level'] || 'low').toLowerCase()}">${(report.risklevel || report.riskLevel || report['Risk Level'] || 'LOW').toUpperCase()}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Status</div>
-                    <div class="field-value risk-${report.status?.toLowerCase() || 'active'}">${(report.status || 'ACTIVE').toUpperCase()}</div>
+                    <div class="field-value status-${(report.status || report.Status || 'active').toLowerCase()}">${(report.status || report.Status || 'ACTIVE').toUpperCase()}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Notes</div>
-                    <div class="field-value">${report.notes || 'No additional notes'}</div>
+                    <div class="field-value">${report.notes || report.Notes || 'No additional notes'}</div>
                 </div>
             `;
             
@@ -2058,7 +2272,7 @@
             showNotification(`Refreshing ${divisionCode} data...`, 'info');
             
             setTimeout(() => {
-                loadDivisionData();
+                loadRealDataFromSheets();
                 showNotification(`${divisionCode} data refreshed successfully`, 'success');
             }, 1800);
         }
@@ -2075,7 +2289,7 @@
             showNotification('Synchronizing all divisions with Google Sheets...', 'info');
             
             setTimeout(() => {
-                loadDivisionData();
+                loadRealDataFromSheets();
                 updateSyncTime();
                 showNotification('All divisions synchronized successfully', 'success');
             }, 3000);
@@ -2112,16 +2326,6 @@
             }, 5000);
         }
 
-        // Add fadeOut animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeOut {
-                from { opacity: 1; transform: translateY(0) scale(1); }
-                to { opacity: 0; transform: translateY(-30px) scale(0.95); }
-            }
-        `;
-        document.head.appendChild(style);
-
         // Event listeners
         document.getElementById('accessCode').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') authenticate();
@@ -2135,5 +2339,4 @@
         initializeApp();
     </script>
 </body>
-
 </html>
