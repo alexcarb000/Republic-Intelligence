@@ -2198,13 +2198,13 @@
 
             tbody.innerHTML = reports.map((report, index) => {
                 // Handle different possible column name variations
-                const date = report.date || report.Date || 'N/A';
-                const numberCount = report.numbercount || report.numberCount || report['Number Count'] || 'N/A';
-                const observation = report.observation || report.Observation || 'No observation recorded';
-                const evidenceLink = report.evidencelinkdescription || report.evidenceLink || report['Evidence Link/Description'] || 'No evidence provided';
-                const riskLevel = (report.risklevel || report.riskLevel || report['Risk Level'] || 'low').toLowerCase();
-                const status = (report.status || report.Status || 'active').toLowerCase();
-                const notes = report.notes || report.Notes || 'No additional notes';
+                const date = report.date || report.Date || report['date'] || report['timestamp'] || 'N/A';
+                const numberCount = report.number_count || report.numbercount || report['Number Count'] || report['count'] || 'N/A';
+                const observation = report.observation || report.Observation || report['notes'] || report['description'] || 'No observation recorded';
+                const evidenceLink = report.evidence_link || report.evidencelinkdescription || report['Evidence Link/Description'] || report['evidence'] || 'No evidence provided';
+                const riskLevel = (report.risk_level || report.risklevel || report['Risk Level'] || report['priority'] || 'low').toLowerCase();
+                const status = (report.status || report.Status || report['state'] || 'active').toLowerCase();
+                const notes = report.notes || report.Notes || report['comments'] || report['additional_notes'] || 'No additional notes';
                 
                 return `
                     <tr style="animation: slideInFlow 0.5s ease-out ${index * 0.1}s both; cursor: pointer;" onclick="viewReport('${divisionCode}', '${date}')">
@@ -2241,37 +2241,37 @@
                 
                 <div class="field-group">
                     <div class="field-label">Date</div>
-                    <div class="field-value">${report.date || report.Date || 'N/A'}</div>
+                    <div class="field-value">${report.date || 'N/A'}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Number Count</div>
-                    <div class="field-value">${report.numbercount || report.numberCount || report['Number Count'] || 'N/A'}</div>
+                    <div class="field-value">${report.number_count || 'N/A'}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Observation</div>
-                    <div class="field-value">${report.observation || report.Observation || 'No observation recorded'}</div>
+                    <div class="field-value">${report.observation || 'No observation recorded'}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Evidence Link/Description</div>
-                    <div class="field-value">${report.evidencelinkdescription || report.evidenceLink || report['Evidence Link/Description'] || 'No evidence provided'}</div>
+                    <div class="field-value">${report['evidence_link/description'] || 'No evidence provided'}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Risk Level</div>
-                    <div class="field-value risk-${(report.risklevel || report.riskLevel || report['Risk Level'] || 'low').toLowerCase()}">${(report.risklevel || report.riskLevel || report['Risk Level'] || 'LOW').toUpperCase()}</div>
+                    <div class="field-value risk-${(report.risk_level || 'low').toLowerCase()}">${(report.risk_level || 'LOW').toUpperCase()}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Status</div>
-                    <div class="field-value status-${(report.status || report.Status || 'active').toLowerCase()}">${(report.status || report.Status || 'ACTIVE').toUpperCase()}</div>
+                    <div class="field-value status-${(report.status || 'active').toLowerCase()}">${(report.status || 'ACTIVE').toUpperCase()}</div>
                 </div>
                 
                 <div class="field-group">
                     <div class="field-label">Notes</div>
-                    <div class="field-value">${report.notes || report.Notes || 'No additional notes'}</div>
+                    <div class="field-value">${report.notes || 'No additional notes'}</div>
                 </div>
             `;
             
