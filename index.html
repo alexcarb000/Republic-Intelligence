@@ -1860,22 +1860,35 @@
                             const headers = values[0];
                             console.log(`HEADERS for ${division}:`, headers);
                             
+                            // FIXED: Use predefined column names instead of sheet headers
+                            const expectedColumns = ['date', 'number_count', 'observation', 'evidence_link/description', 'risk_level', 'status', 'notes'];
+                            
                             const reports = values.slice(1).map((row, rowIndex) => {
                                 const report = {};
-                                headers.forEach((header, index) => {
-                                    // FIXED: Better header processing
-                                    const key = header.toString().toLowerCase().trim().replace(/\s+/g, '_').replace(/\//g, '/');
-                                    report[key] = row[index] || '';
-                                    if (rowIndex === 0) {
-                                        console.log(`MAPPING: "${header}" -> "${key}" = "${row[index] || ''}"`);
-                                    }
+                                
+                                // Skip rows that are just decoration (all dashes or empty)
+                                const isDecorationRow = row.every(cell => 
+                                    !cell || 
+                                    cell.toString().trim() === '' || 
+                                    /^[─\-\s]*$/.test(cell.toString())
+                                );
+                                
+                                if (isDecorationRow) {
+                                    return null; // Will be filtered out
+                                }
+                                
+                                // Map data to expected columns based on position
+                                expectedColumns.forEach((colName, index) => {
+                                    report[colName] = row[index] || '';
                                 });
                                 
                                 if (rowIndex === 0) {
-                                    console.log(`FIRST REPORT for ${division}:`, report);
+                                    console.log(`HEADERS for ${division}:`, headers);
+                                    console.log(`SAMPLE DATA for ${division}:`, row);
+                                    console.log(`MAPPED REPORT for ${division}:`, report);
                                 }
                                 return report;
-                            });
+                            }).filter(report => report !== null); // Remove null entries
                             
                             divisionData[division] = reports;
                             console.log(`✅ ${division}: Loaded ${reports.length} real reports`);
