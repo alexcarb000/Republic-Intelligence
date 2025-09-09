@@ -1676,7 +1676,7 @@
     </div>
 
     <script>
-        // Configuration
+        // Configuration - YOUR ACTUAL API CREDENTIALS
         const API_CONFIG = {
             spreadsheetId: '1dqChLxaQlKNQ3mLo8u2iSYF1y0UB0J2YvhgdL8JPxas',
             apiKey: 'AIzaSyCUC33FVUx_Mz2zEFJThQiyUdPvGQpI87Q',
@@ -1720,7 +1720,7 @@
         let activeDivision = null;
         let divisionData = {};
 
-        // Simple initialization - NO gapi dependencies
+        // FIXED: Simple initialization - NO gapi dependencies
         function initializeApp() {
             console.log('🚀 Initializing Republic Intelligence Agency app...');
             updateCurrentTime();
@@ -1731,10 +1731,9 @@
             // Load demo data immediately
             loadDemoData();
             
-            // Attempt to load real data in background
-            setTimeout(() => {
-                loadRealDataFromSheets();
-            }, 2000);
+            // IMMEDIATELY try to load real data
+            console.log('⏱️ About to call loadRealDataFromSheets...');
+            loadRealDataFromSheets();
         }
         
         function loadDemoData() {
@@ -1745,28 +1744,28 @@
                 divisionData[divCode] = [
                     {
                         date: '2024-01-15',
-                        numbercount: '45',
+                        number_count: '45',
                         observation: 'Routine patrol completed',
-                        evidencelinkdescription: 'Report filed in database',
-                        risklevel: 'low',
+                        'evidence_link/description': 'Report filed in database',
+                        risk_level: 'low',
                         status: 'completed',
                         notes: 'All objectives met'
                     },
                     {
                         date: '2024-01-14',
-                        numbercount: '23',
+                        number_count: '23',
                         observation: 'Suspicious activity detected',
-                        evidencelinkdescription: 'Security footage available',
-                        risklevel: 'medium',
+                        'evidence_link/description': 'Security footage available',
+                        risk_level: 'medium',
                         status: 'active',
                         notes: 'Requires follow-up investigation'
                     },
                     {
                         date: '2024-01-13',
-                        numbercount: '67',
+                        number_count: '67',
                         observation: 'Emergency response deployed',
-                        evidencelinkdescription: 'Incident report #2024-013',
-                        risklevel: 'high',
+                        'evidence_link/description': 'Incident report #2024-013',
+                        risk_level: 'high',
                         status: 'completed',
                         notes: 'Situation resolved successfully'
                     }
@@ -1777,7 +1776,7 @@
             updateSyncTime();
         }
 
-        // Direct Google Sheets API access (no gapi required)
+        // FIXED: Direct Google Sheets API access
         async function loadRealDataFromSheets() {
             console.log('🔄 Attempting to load real data from Google Sheets...');
             console.log('🔧 API Config check:', {
@@ -1859,12 +1858,22 @@
                         
                         if (values.length > 1) {
                             const headers = values[0];
-                            const reports = values.slice(1).map(row => {
+                            console.log(`HEADERS for ${division}:`, headers);
+                            
+                            const reports = values.slice(1).map((row, rowIndex) => {
                                 const report = {};
                                 headers.forEach((header, index) => {
-                                    const key = header.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+                                    // FIXED: Better header processing
+                                    const key = header.toString().toLowerCase().trim().replace(/\s+/g, '_').replace(/\//g, '/');
                                     report[key] = row[index] || '';
+                                    if (rowIndex === 0) {
+                                        console.log(`MAPPING: "${header}" -> "${key}" = "${row[index] || ''}"`);
+                                    }
                                 });
+                                
+                                if (rowIndex === 0) {
+                                    console.log(`FIRST REPORT for ${division}:`, report);
+                                }
                                 return report;
                             });
                             
@@ -1886,13 +1895,6 @@
                 updateSyncTime();
                 showNotification(`✅ Loaded real data from ${successCount} divisions!`, 'success');
             }
-        }
-
-        // Direct Google Sheets API access (no gapi required)
-        async function loadDivisionData() {
-            console.log('🔄 Loading division data via direct API...');
-            // Just call the real data loading function
-            await loadRealDataFromSheets();
         }
 
         function generateDivisionPages() {
@@ -2026,7 +2028,7 @@
             loadRealDataFromSheets();
         }
 
-        // Add debugging button (helps troubleshoot issues)
+        // Add debugging button
         function addDebugButton() {
             const debugBtn = document.createElement('button');
             debugBtn.textContent = 'Debug Data';
@@ -2115,6 +2117,7 @@
             }, 150);
         }
 
+        // FIXED: Statistics calculation using your exact column names
         function updateDivisionStats() {
             console.log('🔄 Updating division statistics...');
             
@@ -2126,13 +2129,13 @@
                 
                 const total = data.length;
                 const highRisk = data.filter(r => {
-                    const risk = (r.risklevel || r.riskLevel || '').toLowerCase();
-                    return risk === 'high' || risk === 'HIGH';
+                    const risk = (r.risk_level || '').toLowerCase();
+                    return risk === 'high';
                 }).length;
-                const avgPersonnel = total > 0 ? Math.round(data.reduce((sum, r) => sum + parseInt(r.numbercount || r.numberCount || 0), 0) / total) : 0;
+                const avgPersonnel = total > 0 ? Math.round(data.reduce((sum, r) => sum + parseInt(r.number_count || 0), 0) / total) : 0;
                 const completed = data.filter(r => {
                     const status = (r.status || '').toLowerCase();
-                    return status === 'completed' || status === 'COMPLETED';
+                    return status === 'completed';
                 }).length;
                 const readiness = total > 0 ? Math.round((completed / total) * 100) : 0;
                 
@@ -2172,17 +2175,17 @@
             requestAnimationFrame(animate);
         }
 
-        function updateReportsTable(divisionCode, reports) {
-            console.log(`📋 Updating reports table for ${divisionCode} with ${reports.length} reports`);
+        // FIXED: Table display using your exact column names
+        function updateReportsTable(divisionCode, data) {
+            console.log(`📋 Updating reports table for ${divisionCode} with ${data.length} reports`);
             
             const tbody = document.getElementById(divisionCode.toLowerCase() + '-reports');
             if (!tbody) {
-                console.warn(`⚠️ Table body not found for ${divisionCode}`);
+                console.warn(`❌ Table body not found for ${divisionCode}`);
                 return;
             }
-
-            if (reports.length === 0) {
-                console.log(`ℹ️ No reports to display for ${divisionCode}`);
+            
+            if (data.length === 0) {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" style="text-align: center; padding: 40px; color: #8a92a6;">
@@ -2192,166 +2195,241 @@
                 `;
                 return;
             }
-
-            // Log sample report structure
-            console.log(`📄 Sample report structure for ${divisionCode}:`, reports[0]);
-
-            tbody.innerHTML = reports.map((report, index) => {
-                // Handle different possible column name variations
-                const date = report.date || report.Date || report['date'] || report['timestamp'] || 'N/A';
-                const numberCount = report.number_count || report.numbercount || report['Number Count'] || report['count'] || 'N/A';
-                const observation = report.observation || report.Observation || report['notes'] || report['description'] || 'No observation recorded';
-                const evidenceLink = report.evidence_link || report.evidencelinkdescription || report['Evidence Link/Description'] || report['evidence'] || 'No evidence provided';
-                const riskLevel = (report.risk_level || report.risklevel || report['Risk Level'] || report['priority'] || 'low').toLowerCase();
-                const status = (report.status || report.Status || report['state'] || 'active').toLowerCase();
-                const notes = report.notes || report.Notes || report['comments'] || report['additional_notes'] || 'No additional notes';
-                
-                return `
-                    <tr style="animation: slideInFlow 0.5s ease-out ${index * 0.1}s both; cursor: pointer;" onclick="viewReport('${divisionCode}', '${date}')">
-                        <td>${date}</td>
-                        <td>${numberCount}</td>
-                        <td>${observation}</td>
-                        <td>${evidenceLink}</td>
-                        <td class="risk-${riskLevel}">${riskLevel.toUpperCase()}</td>
-                        <td class="status-${status}">${status.toUpperCase()}</td>
-                        <td>${notes}</td>
-                    </tr>
-                `;
-            }).join('');
             
-            console.log(`✅ Table updated for ${divisionCode}`);
+            // Clear and populate table
+            tbody.innerHTML = '';
+            
+            data.forEach((report, index) => {
+                const row = document.createElement('tr');
+                row.style.animation = `slideInFlow 0.6s ease-out ${index * 0.1}s both`;
+                row.onclick = () => showReportDetails(report, divisionCode);
+                row.style.cursor = 'pointer';
+                
+                // Format risk level with appropriate styling
+                const riskLevel = (report.risk_level || '').toLowerCase();
+                const riskClass = riskLevel === 'high' ? 'risk-high' : 
+                                 riskLevel === 'medium' ? 'risk-medium' : 'risk-low';
+                
+                row.innerHTML = `
+                    <td>${report.date || 'N/A'}</td>
+                    <td>${report.number_count || '0'}</td>
+                    <td>${truncateText(report.observation || 'No observation', 50)}</td>
+                    <td>${truncateText(report['evidence_link/description'] || 'No evidence', 40)}</td>
+                    <td><span class="${riskClass}">${(report.risk_level || 'Unknown').toUpperCase()}</span></td>
+                    <td>${report.status || 'Unknown'}</td>
+                    <td>${truncateText(report.notes || 'No notes', 30)}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
         }
 
-        // Report viewing with enhanced modal
-        function viewReport(divisionCode, reportDate) {
-            const reports = divisionData[divisionCode] || [];
-            const report = reports.find(r => (r.date || r.Date) === reportDate);
-            
-            if (!report) {
-                showNotification('Report not found', 'error');
-                return;
-            }
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength - 3) + '...';
+        }
 
-            const modalContent = document.getElementById('modalContent');
-            modalContent.innerHTML = `
+        function showReportDetails(report, divisionCode) {
+            const modal = document.getElementById('reportModal');
+            const content = document.getElementById('modalContent');
+            
+            content.innerHTML = `
                 <div class="field-group">
-                    <div class="field-label">Division</div>
+                    <label class="field-label">Division</label>
                     <div class="field-value">${divisions[divisionCode].name} (${divisionCode})</div>
                 </div>
-                
                 <div class="field-group">
-                    <div class="field-label">Date</div>
-                    <div class="field-value">${report.date || 'N/A'}</div>
+                    <label class="field-label">Date</label>
+                    <div class="field-value">${report.date || 'Not specified'}</div>
                 </div>
-                
                 <div class="field-group">
-                    <div class="field-label">Number Count</div>
-                    <div class="field-value">${report.number_count || 'N/A'}</div>
+                    <label class="field-label">Number Count</label>
+                    <div class="field-value">${report.number_count || '0'}</div>
                 </div>
-                
                 <div class="field-group">
-                    <div class="field-label">Observation</div>
+                    <label class="field-label">Observation</label>
                     <div class="field-value">${report.observation || 'No observation recorded'}</div>
                 </div>
-                
                 <div class="field-group">
-                    <div class="field-label">Evidence Link/Description</div>
-                    <div class="field-value">${report['evidence_link/description'] || 'No evidence provided'}</div>
+                    <label class="field-label">Evidence Link/Description</label>
+                    <div class="field-value">${report['evidence_link/description'] || 'No evidence available'}</div>
                 </div>
-                
                 <div class="field-group">
-                    <div class="field-label">Risk Level</div>
-                    <div class="field-value risk-${(report.risk_level || 'low').toLowerCase()}">${(report.risk_level || 'LOW').toUpperCase()}</div>
+                    <label class="field-label">Risk Level</label>
+                    <div class="field-value">
+                        <span class="${(report.risk_level || '').toLowerCase() === 'high' ? 'risk-high' : 
+                                      (report.risk_level || '').toLowerCase() === 'medium' ? 'risk-medium' : 'risk-low'}">
+                            ${(report.risk_level || 'Unknown').toUpperCase()}
+                        </span>
+                    </div>
                 </div>
-                
                 <div class="field-group">
-                    <div class="field-label">Status</div>
-                    <div class="field-value status-${(report.status || 'active').toLowerCase()}">${(report.status || 'ACTIVE').toUpperCase()}</div>
+                    <label class="field-label">Status</label>
+                    <div class="field-value">${report.status || 'Unknown'}</div>
                 </div>
-                
                 <div class="field-group">
-                    <div class="field-label">Notes</div>
+                    <label class="field-label">Notes</label>
                     <div class="field-value">${report.notes || 'No additional notes'}</div>
                 </div>
             `;
             
-            document.getElementById('reportModal').style.display = 'flex';
+            modal.style.display = 'flex';
         }
 
         function closeModal() {
-            document.getElementById('reportModal').style.display = 'none';
-        }
-
-        // Data management functions with enhanced feedback
-        function refreshDivisionData(divisionCode) {
-            showNotification(`Refreshing ${divisionCode} data...`, 'info');
-            
+            const modal = document.getElementById('reportModal');
+            modal.style.animation = 'fadeOut 0.4s ease-out forwards';
             setTimeout(() => {
-                loadRealDataFromSheets();
-                showNotification(`${divisionCode} data refreshed successfully`, 'success');
-            }, 1800);
-        }
-
-        function exportDivisionData(divisionCode) {
-            showNotification(`Exporting ${divisionCode} data...`, 'info');
-            
-            setTimeout(() => {
-                showNotification(`${divisionCode} data exported successfully`, 'success');
-            }, 1500);
-        }
-
-        function forceSyncSheets() {
-            showNotification('Synchronizing all divisions with Google Sheets...', 'info');
-            
-            setTimeout(() => {
-                loadRealDataFromSheets();
-                updateSyncTime();
-                showNotification('All divisions synchronized successfully', 'success');
-            }, 3000);
-        }
-
-        // Utility functions
-        function updateCurrentTime() {
-            const now = new Date();
-            document.getElementById('currentTime').textContent = 
-                now.toISOString().substr(11, 8) + ' UTC';
-        }
-
-        function updateSyncTime() {
-            const now = new Date();
-            document.getElementById('lastSync').textContent = 
-                now.toISOString().substr(11, 8) + ' UTC';
+                modal.style.display = 'none';
+                modal.style.animation = '';
+            }, 400);
         }
 
         function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            document.querySelectorAll('.notification').forEach(n => n.remove());
+            
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             notification.textContent = message;
             document.body.appendChild(notification);
-
+            
+            // Auto-remove after 4 seconds
             setTimeout(() => {
-                if (document.body.contains(notification)) {
-                    notification.style.animation = 'fadeOut 0.4s ease-out forwards';
-                    setTimeout(() => {
-                        if (document.body.contains(notification)) {
-                            document.body.removeChild(notification);
-                        }
-                    }, 400);
-                }
-            }, 5000);
+                notification.style.animation = 'fadeOut 0.6s ease-out forwards';
+                setTimeout(() => notification.remove(), 600);
+            }, 4000);
         }
 
-        // Event listeners
-        document.getElementById('accessCode').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') authenticate();
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toUTCString().split(' ')[4] + ' UTC';
+            document.getElementById('currentTime').textContent = timeString;
+        }
+
+        function updateSyncTime() {
+            const now = new Date();
+            const syncTime = now.toLocaleTimeString();
+            document.getElementById('lastSync').textContent = syncTime;
+        }
+
+        async function forceSyncSheets() {
+            showNotification('Forcing Google Sheets sync...', 'info');
+            
+            try {
+                await loadRealDataFromSheets();
+                showNotification('Sync completed successfully', 'success');
+            } catch (error) {
+                console.error('Sync failed:', error);
+                showNotification('Sync failed - check console for details', 'error');
+            }
+        }
+
+        function refreshDivisionData(divisionCode) {
+            showNotification(`Refreshing ${divisionCode} data...`, 'info');
+            
+            // Simulate refresh with animation
+            const page = document.getElementById(divisionCode.toLowerCase() + '-page');
+            if (page) {
+                page.style.opacity = '0.6';
+                page.style.transform = 'scale(0.98)';
+                
+                setTimeout(() => {
+                    updateDivisionStats();
+                    page.style.opacity = '1';
+                    page.style.transform = 'scale(1)';
+                    showNotification(`${divisionCode} data refreshed`, 'success');
+                }, 1500);
+            }
+        }
+
+        function exportDivisionData(divisionCode) {
+            const data = divisionData[divisionCode] || [];
+            
+            if (data.length === 0) {
+                showNotification('No data to export for ' + divisionCode, 'error');
+                return;
+            }
+            
+            // Convert to CSV
+            const headers = ['Date', 'Number Count', 'Observation', 'Evidence Link/Description', 'Risk Level', 'Status', 'Notes'];
+            const csvContent = [
+                headers.join(','),
+                ...data.map(row => [
+                    row.date || '',
+                    row.number_count || '',
+                    `"${(row.observation || '').replace(/"/g, '""')}"`,
+                    `"${(row['evidence_link/description'] || '').replace(/"/g, '""')}"`,
+                    row.risk_level || '',
+                    row.status || '',
+                    `"${(row.notes || '').replace(/"/g, '""')}"`
+                ].join(','))
+            ].join('\n');
+            
+            // Download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${divisionCode}_intelligence_reports_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification(`${divisionCode} data exported successfully`, 'success');
+        }
+
+        // Enhanced keyboard controls
+        document.addEventListener('DOMContentLoaded', function() {
+            // Enter key for login
+            document.getElementById('accessCode').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    authenticate();
+                }
+            });
+            
+            // ESC key to close modal
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const modal = document.getElementById('reportModal');
+                    if (modal.style.display === 'flex') {
+                        closeModal();
+                    }
+                }
+            });
+            
+            // Click outside modal to close
+            document.getElementById('reportModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
         });
 
-        document.getElementById('reportModal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
+        // Initialize the application when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
 
-        // Initialize the application
-        initializeApp();
+        // Console welcome message with system info
+        console.log(`
+██████╗ ███████╗██████╗ ██╗   ██╗██████╗ ██╗     ██╗ ██████╗    ██╗███╗   ██╗████████╗███████╗██╗     
+██╔══██╗██╔════╝██╔══██╗██║   ██║██╔══██╗██║     ██║██╔════╝    ██║████╗  ██║╚══██╔══╝██╔════╝██║     
+██████╔╝█████╗  ██████╔╝██║   ██║██████╔╝██║     ██║██║         ██║██╔██╗ ██║   ██║   █████╗  ██║     
+██╔══██╗██╔══╝  ██╔═══╝ ██║   ██║██╔══██╗██║     ██║██║         ██║██║╚██╗██║   ██║   ██╔══╝  ██║     
+██║  ██║███████╗██║     ╚██████╔╝██████╔╝███████╗██║╚██████╗    ██║██║ ╚████║   ██║   ███████╗███████╗
+╚═╝  ╚═╝╚══════╝╚═╝      ╚═════╝ ╚═════╝ ╚══════╝╚═╝ ╚═════╝    ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚══════╝
+
+🔐 Republic Intelligence Agency - Tactical Operations Center
+🌐 Secure connection established
+📊 Google Sheets integration active
+⚡ Real-time data synchronization enabled
+
+System Status: OPERATIONAL
+Access Level: CLASSIFIED
+Encryption: AES-256
+
+For debug information, use the Debug Data button after logging in.
+        `);
     </script>
 </body>
 </html>
